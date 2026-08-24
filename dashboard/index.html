@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitoramento ETE</title>
+  <style>
+    :root { font-family: Inter, system-ui, sans-serif; color: #17232b; background: #f4f7f6; }
+    body { margin: 0; }
+    header { padding: 20px; background: #12304a; color: white; }
+    main { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .status { font-weight: 700; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+    .card { background: white; border: 1px solid #dbe3e5; border-radius: 14px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+    .label { color: #607078; font-size: .9rem; }
+    .value { font-size: 1.8rem; font-weight: 750; margin-top: 6px; }
+    .meta { margin-top: 18px; color: #607078; }
+    @media (max-width: 600px) { main { padding: 14px; } header { padding: 16px; } }
+  </style>
+</head>
+<body>
+<header><strong>Monitoramento do Efluente — ETE</strong></header>
+<main>
+  <p class="status" id="status">● Conectando...</p>
+  <section class="grid">
+    <article class="card"><div class="label">pH</div><div class="value" id="ph">—</div></article>
+    <article class="card"><div class="label">Turbidez (NTU)</div><div class="value" id="turbidity">—</div></article>
+    <article class="card"><div class="label">Condutividade (µS/cm)</div><div class="value" id="conductivity">—</div></article>
+    <article class="card"><div class="label">Temperatura (°C)</div><div class="value" id="temperature">—</div></article>
+    <article class="card"><div class="label">Oxigênio dissolvido (mg/L)</div><div class="value" id="do">—</div></article>
+    <article class="card"><div class="label">Vazão (L/min)</div><div class="value" id="flow">—</div></article>
+  </section>
+  <div class="meta" id="updated">Aguardando dados...</div>
+</main>
+<script>
+const API_BASE = window.API_BASE || 'http://localhost:8000';
+function fmt(v, digits=2) { return v == null || Number.isNaN(Number(v)) ? '—' : Number(v).toFixed(digits); }
+async function refresh() {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/latest`, { cache: 'no-store' });
+    if (!res.ok) throw new Error('API indisponível');
+    const d = await res.json();
+    document.getElementById('status').textContent = '● Sistema online';
+    if (!d) return;
+    document.getElementById('ph').textContent = fmt(d.ph, 2);
+    document.getElementById('turbidity').textContent = fmt(d.turbidity_ntu, 1);
+    document.getElementById('conductivity').textContent = fmt(d.conductivity_us_cm, 1);
+    document.getElementById('temperature').textContent = fmt(d.temperature_c, 1);
+    document.getElementById('do').textContent = fmt(d.dissolved_oxygen_mg_l, 2);
+    document.getElementById('flow').textContent = fmt(d.flow_l_min, 1);
+    document.getElementById('updated').textContent = `Última leitura: ${d.timestamp ?? 'sem timestamp'}`;
+  } catch (e) {
+    document.getElementById('status').textContent = '● Sem conexão com o servidor';
+  }
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
